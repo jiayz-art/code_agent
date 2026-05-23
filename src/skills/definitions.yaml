@@ -1,0 +1,313 @@
+# ============================================================
+# Skill 定义库 —— AI Coding Agent 的能力目录
+# ============================================================
+#
+# 三层组织：
+#   categories（场景目录）→ skills（高层Skill）→ tools（原子Tool）
+#
+# 新增 Skill 只需在此文件中加一段 YAML，核心代码零改动。
+# 新增 Tool 仍需在 main.py 注册 + 实现类（同现有机制）。
+# ============================================================
+
+categories:
+  - name: debug
+    label: "调试与排错"
+    description: "定位和修复 bug、分析错误日志、性能诊断"
+  - name: develop
+    label: "代码开发"
+    description: "编写新功能、重构优化、代码审查"
+  - name: test
+    label: "测试相关"
+    description: "编写测试、运行测试、修复测试、覆盖率"
+  - name: document
+    label: "文档与理解"
+    description: "生成文档、解释代码、分析依赖关系"
+  - name: git
+    label: "版本控制"
+    description: "Git 提交、分支管理、代码审查"
+
+skills:
+
+  # ==================== 调试与排错 ====================
+
+  - name: fix_runtime_error
+    display_name: "修复运行时错误"
+    description: "分析Python运行时错误堆栈，定位根因并修复代码"
+    category: debug
+    tags: [python, runtime-error, traceback, bug-fix, exception, error-analysis]
+    tools: [read_file, edit_file, run_command, grep_search]
+    prompt_template: |
+      ## 运行时错误修复流程
+      1. 先完整阅读错误堆栈，确定异常类型和触发位置
+      2. 用 grep_search 搜索相关代码模式，理解上下文
+      3. 用 read_file 阅读出错文件的相关代码段
+      4. 分析根因（非只修复表面现象）
+      5. 用 edit_file 精确修改，每次只改一处
+      6. 用 run_command 运行代码验证修复
+    examples:
+      - task: "AttributeError: 'NoneType' object has no attribute 'name' 帮我修"
+        why: "典型的属性访问错误，需要追溯 None 来源"
+      - task: "代码报 KeyError: 'database_url'，配置文件里明明有"
+        why: "配置键名不匹配，需要读配置和代码找到拼写差异"
+
+  - name: analyze_logs
+    display_name: "分析日志定位问题"
+    description: "读取日志文件，匹配错误模式，定位问题根因"
+    category: debug
+    tags: [logs, error-log, analysis, pattern-matching, grep]
+    tools: [read_file, grep_search, run_command]
+    prompt_template: |
+      ## 日志分析流程
+      1. grep_search 搜索 ERROR/CRITICAL/WARN 关键词
+      2. read_file 阅读错误附近的上下文日志
+      3. 匹配已知错误模式库（超时、连接拒绝、权限不足等）
+      4. 定位到具体代码文件和行号
+      5. 提出修复建议或直接修改代码
+    examples:
+      - task: "看了下今天应用的日志全是报错，帮我看看什么问题"
+        why: "日志文件分析，需要找到关键错误并定位代码"
+
+  - name: performance_debug
+    display_name: "性能瓶颈诊断"
+    description: "分析代码性能问题，定位慢函数、内存泄漏、IO瓶颈"
+    category: debug
+    tags: [performance, profiling, slow-query, memory-leak, optimization]
+    tools: [read_file, run_command, grep_search]
+    prompt_template: |
+      ## 性能诊断流程
+      1. 用 run_command 运行性能检查工具（cProfile, memory_profiler等）
+      2. grep_search 搜索可能的性能反模式（嵌套循环、N+1查询）
+      3. 分析热点函数的时间/空间复杂度
+      4. 提供优化方案（缓存、批量操作、异步化）
+    examples:
+      - task: "这个函数处理大列表时特别慢，帮我分析下原因"
+        why: "算法复杂度问题，需要分析代码+提出优化方案"
+
+  # ==================== 代码开发 ====================
+
+  - name: implement_feature
+    display_name: "实现新功能"
+    description: "根据需求描述编写新代码或功能模块，遵循项目现有模式"
+    category: develop
+    tags: [feature, implementation, new-code, greenfield, module]
+    tools: [read_file, write_file, edit_file, run_command, grep_search]
+    prompt_template: |
+      ## 新功能开发流程
+      1. 先用 grep_search 了解项目中类似功能的实现模式
+      2. 用 read_file 阅读相关模块的接口和约定
+      3. 规划代码结构：需要哪些函数/类，放在哪些文件中
+      4. 用 write_file 创建新文件或用 edit_file 扩展现有文件
+      5. 确保错误处理、类型注解、文档字符串完整
+      6. 用 run_command 运行相关测试确保不破坏现有功能
+    examples:
+      - task: "帮我在 api.py 里加一个 /export 端点，支持 CSV 导出"
+        why: "新增API端点，需要参考现有路由模式"
+
+  - name: refactor_code
+    display_name: "重构代码"
+    description: "优化代码结构：拆分大函数、消除重复代码、改善命名、降低复杂度"
+    category: develop
+    tags: [refactor, clean-code, complexity, dedup, optimization, code-smell]
+    tools: [read_file, edit_file, grep_search, git_diff, run_command]
+    prompt_template: |
+      ## 重构原则
+      1. 阅读目标代码，识别代码坏味道（长函数、重复代码、过深嵌套）
+      2. 保持外部接口不变——外部调用者无感知
+      3. 每次只做一种重构（提取函数→消除重复→简化条件）
+      4. 每步改完后用 run_command 跑相关测试
+      5. 用 git_diff 查看变更确保只改了目标范围
+    examples:
+      - task: "process_order 函数超过 200 行了，帮我拆分重构"
+        why: "大函数拆分，涉及 extract method + 保持接口兼容"
+      - task: "这三个文件里都有几乎一样的 validate_input 逻辑，帮我提出来"
+        why: "消除重复代码，提取公共工具函数"
+
+  - name: code_review_fix
+    display_name: "代码审查修改"
+    description: "根据代码审查意见修改代码，逐条处理 review comments"
+    category: develop
+    tags: [code-review, feedback, PR, review-comments, fix]
+    tools: [read_file, edit_file, grep_search, git_diff]
+    prompt_template: |
+      ## 代码审查修改流程
+      1. 逐一理解每条 review comment
+      2. 用 read_file 阅读涉及的文件
+      3. 用 edit_file 精确修改
+      4. 用 grep_search 检查相同模式是否在其他地方也需要修改
+      5. 用 git_diff 确认所有修改与 review 意见对应
+    examples:
+      - task: "PR 上的评论说这里异常处理太宽泛了，帮我改成捕获具体异常类型"
+        why: "代码审查意见，涉及异常处理重构"
+
+  - name: add_type_hints
+    display_name: "添加类型注解"
+    description: "为 Python 代码添加完整的类型注解，提高代码可读性和IDE支持"
+    category: develop
+    tags: [type-hints, mypy, typing, annotation, static-analysis]
+    tools: [read_file, edit_file, run_command]
+    prompt_template: |
+      ## 类型注解添加指南
+      1. 阅读代码理解函数签名和变量用途
+      2. 使用 typing 模块（Optional, Union, List, Dict 等）
+      3. 复杂类型使用 TypeAlias 简化
+      4. 用 run_command 运行 mypy 检查类型正确性
+    examples:
+      - task: "给 utils.py 里的所有函数加上类型注解"
+        why: "批量添加类型注解，需要理解代码逻辑"
+
+  # ==================== 测试相关 ====================
+
+  - name: fix_unit_test
+    display_name: "修复单元测试"
+    description: "分析失败的测试用例，定位被测代码问题或测试本身问题并修复"
+    category: test
+    tags: [python, pytest, unittest, error-fix, assertion, test-failure]
+    tools: [read_file, edit_file, run_command, grep_search]
+    prompt_template: |
+      ## 单元测试修复流程
+      1. 先用 read_file 阅读测试文件，理解测试意图
+      2. 用 run_command 只跑失败的测试，获取完整错误输出
+      3. 区分是测试写错了还是被测代码有 bug
+      4. 用 grep_search 搜索相关函数实现
+      5. 用 edit_file 精确修改（每次只改测试或只改代码，不要同时改）
+      6. 用 run_command 重新运行测试验证
+      7. 如果能修好，再跑一次全量测试确保无回归
+    examples:
+      - task: "test_user_auth 一直失败，帮我看看"
+        why: "单测失败修复，需要区分测试问题还是代码问题"
+      - task: "跑 pytest 有 3 个失败，帮我全修好"
+        why: "批量修复多个测试失败"
+
+  - name: write_unit_test
+    display_name: "编写单元测试"
+    description: "为指定代码编写完整的单元测试，覆盖正常路径和边界条件"
+    category: test
+    tags: [python, pytest, unittest, test-writing, coverage, mock]
+    tools: [read_file, write_file, edit_file, run_command, grep_search]
+    prompt_template: |
+      ## 单元测试编写规范
+      1. 阅读被测代码，列出所有分支路径
+      2. 确认项目使用的测试框架（pytest / unittest）
+      3. 覆盖：正常输入 / 边界值 / 异常路径 / 空输入
+      4. 外部依赖使用 Mock 隔离
+      5. 测试命名清晰：test_<函数名>_<场景>_<期望结果>
+      6. 编写完成后用 run_command 运行测试确保通过
+    examples:
+      - task: "给 calculate_discount 函数写单元测试"
+        why: "新增测试，需要覆盖边界条件"
+      - task: "data_processor.py 完全没有测试，帮我补一下"
+        why: "补充测试覆盖，需要阅读代码理解逻辑"
+
+  - name: improve_coverage
+    display_name: "提升测试覆盖率"
+    description: "分析当前测试覆盖率报告，补充缺失的测试用例"
+    category: test
+    tags: [coverage, pytest-cov, missing-branches, test-gap]
+    tools: [read_file, edit_file, run_command, grep_search]
+    prompt_template: |
+      ## 覆盖率提升流程
+      1. 用 run_command 运行 pytest --cov 获取覆盖率报告
+      2. 识别未被覆盖的函数和分支
+      3. 用 read_file 阅读未覆盖的代码
+      4. 设计针对性测试用例覆盖缺失分支
+      5. 用 edit_file 在测试文件中添加新用例
+      6. 重新运行覆盖检查确认提升
+    examples:
+      - task: "这个模块覆盖率只有 60%，帮我提到 80% 以上"
+        why: "覆盖率提升，需要分析报告+补充测试"
+
+  # ==================== 文档与理解 ====================
+
+  - name: explain_code
+    display_name: "解释代码逻辑"
+    description: "阅读并解释代码的架构、核心逻辑、关键决策，适合代码审查和新人上手"
+    category: document
+    tags: [explanation, code-reading, architecture, onboarding, analysis]
+    tools: [read_file, grep_search]
+    prompt_template: |
+      ## 代码解读方法
+      1. 用 read_file 阅读入口文件和核心模块
+      2. 用 grep_search 追踪关键函数的调用关系
+      3. 梳理数据流：输入→处理→输出
+      4. 标注关键决策点和潜在改进空间
+      5. 用简洁的中文输出：模块职责、核心流程、设计模式
+    examples:
+      - task: "这个项目我看不太懂，帮我解释下整体架构"
+        why: "代码解读，需要从入口追踪数据流"
+      - task: "auth.py 的登录流程帮我梳理一下"
+        why: "单模块代码解读"
+
+  - name: generate_docstring
+    display_name: "生成API文档"
+    description: "为函数和类生成规范的 docstring（Google/NumPy/Sphinx 风格）"
+    category: document
+    tags: [docstring, api-doc, documentation, sphinx, google-style]
+    tools: [read_file, edit_file]
+    prompt_template: |
+      ## Docstring 生成规范
+      1. 阅读函数签名和实现理解参数和返回值
+      2. 使用 Google 风格 docstring（Args/Returns/Raises/Yields）
+      3. 包含参数类型、含义、默认值
+      4. 对于复杂函数，添加使用示例（Example）
+      5. 用 edit_file 在函数定义下方插入 docstring
+    examples:
+      - task: "给 api/ 目录下所有公开函数加 docstring"
+        why: "批量生成文档，需要理解每个函数的接口"
+
+  - name: generate_readme
+    display_name: "生成项目README"
+    description: "分析项目结构后生成或更新 README.md，包含安装说明、使用示例、项目结构"
+    category: document
+    tags: [readme, documentation, project-structure, onboarding]
+    tools: [read_file, write_file, run_command, grep_search]
+    prompt_template: |
+      ## README 编写规范
+      1. 用 grep_search 分析项目入口、核心模块、配置
+      2. 用 read_file 阅读 setup.py/pyproject.toml 获取依赖信息
+      3. 生成结构化 README：简介、安装、快速开始、项目结构、API、贡献指南
+      4. 用 write_file 输出
+    examples:
+      - task: "帮我给这个项目写个 README"
+        why: "需要理解项目全貌后生成文档"
+
+  # ==================== 版本控制 ====================
+
+  - name: smart_commit
+    display_name: "智能提交"
+    description: "分析代码变更，自动生成规范的 commit message，执行提交"
+    category: git
+    tags: [git, commit, conventional-commits, changelog]
+    tools: [git_status, git_diff, git_commit, run_command]
+    prompt_template: |
+      ## 智能提交流程
+      1. 用 git_status 查看变更文件列表
+      2. 用 git_diff 查看每个文件的详细变更
+      3. 根据变更内容生成 Conventional Commits 格式的 message
+         - feat: 新功能
+         - fix: bug 修复
+         - refactor: 重构
+         - test: 测试
+         - docs: 文档
+         - chore: 杂项
+      4. 确认 message 后执行 git_commit
+      5. 如果有未跟踪的新文件，提醒用户是否 add
+    examples:
+      - task: "帮我提交当前修改"
+        why: "分析diff自动生成规范commit message"
+
+  - name: create_branch
+    display_name: "创建功能分支"
+    description: "根据任务类型创建规范的 Git 分支（feature/bugfix/hotfix等）"
+    category: git
+    tags: [git, branch, feature-branch, gitflow]
+    tools: [run_command, git_status]
+    prompt_template: |
+      ## 分支命名规范
+      - feature/<描述>: 新功能
+      - bugfix/<描述>: bug 修复
+      - hotfix/<描述>: 紧急修复
+      - refactor/<描述>: 重构
+      用 git checkout -b 创建并切换到新分支
+    examples:
+      - task: "我要开始开发导出功能，帮我创建分支"
+        why: "根据任务类型自动生成规范分支名"
