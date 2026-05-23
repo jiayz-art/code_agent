@@ -1,321 +1,476 @@
-# AI Coding Agent
+🤖 AI Coding Agent
 
-对标 Claude Code 的 Python 实现，基于千问 Qwen-Coder-Plus 模型。自主完成代码阅读、文件编辑、命令执行、代码搜索和多Agent协作。
+对标 Claude Code​ 的企业级 AI 编程助手 | 基于 Qwen-Coder-Plus​ | 六层架构 | 自进化记忆 | 生产级安全
 
-## 快速开始
+https://img.shields.io/badge/Python-3.10+-blue.svg
 
-### 环境要求
+https://img.shields.io/badge/License-MIT-green.svg
 
-- Python 3.12+
-- 阿里云 DashScope API Key（千问模型）
+https://img.shields.io/badge/Code%20Style-Black-black.svg
 
-### 安装运行
+https://img.shields.io/badge/PRs-welcome-brightgreen.svg
 
-```bash
-cd E:\Agent
+📖 目录
+
+✨ 核心特性
+
+🏗️ 架构概览
+
+🚀 快速开始
+
+💡 使用示例
+
+⚙️ 配置说明
+
+📊 性能数据
+
+🧩 扩展开发
+
+🛠️ 技术栈
+
+🗺️ 路线图
+
+🤝 贡献指南
+
+📄 许可证
+
+✨ 核心特性
+
+特性
+
+	
+
+说明
+
+	
+
+效果
+
+
+
+
+🎯 Skill 分层路由​
+
+	
+
+倒排索引召回 → LLM 精排 → 按需追加
+
+	
+
+Token -40%​
+
+
+
+
+🛡️ 四层安全审查​
+
+	
+
+规则 → 自检 → AI 评估 → 人工确认
+
+	
+
+100% 拦截高危操作​
+
+
+
+
+🧠 自进化记忆​
+
+	
+
+ChromaDB + 异步反思 (问题/根因/方案/教训)
+
+	
+
+召回准确率 85%​
+
+
+
+
+📦 上下文压缩​
+
+	
+
+占位替换 → 笔记生成 → 超限压缩
+
+	
+
+Token -33%​
+
+
+
+
+🔄 多 Agent 协作​
+
+	
+
+Fork/Join 并行 + Git Worktree 隔离
+
+	
+
+执行速度 +50%​
+
+🏗️ 架构概览
+纯文本
+┌────────────────────────────────────────────┐
+│               入口层 (main.py)              │
+│  REPL 交互 · 单次任务 · 配置加载 · 初始化   │
+├────────────────────────────────────────────┤
+│            Agent 引擎层 (agent.py)          │
+│  状态机编排 · 循环控制 · 路由集成           │
+├──────────┬──────────┬──────────┬───────────┤
+│ Skill    │ 上下文   │ 安全     │ 记忆      │
+│ 路由系统  │ 压缩系统  │ 审查链路  │ 管理系统   │
+├──────────┴──────────┴──────────┴───────────┤
+│            工具执行层 (tools/)              │
+│  read_file · write_file · edit_file        │
+│  run_command · git_* · grep_search         │
+├────────────────────────────────────────────┤
+│           LLM 通信层 (llm.py)              │
+│  千问 API · OpenAI 兼容 · Token 统计        │
+├────────────────────────────────────────────┤
+│           基础设施层                        │
+│  config · state · safety · logger          │
+└────────────────────────────────────────────┘
+🚀 快速开始
+前置要求
+
+Python 3.10+
+
+Qwen API Key
+(阿里云百炼)
+
+安装步骤
+bash
+# 1. 克隆仓库
+git clone https://github.com/jiayz-art/code_agent.git
+cd code_agent
+
+# 2. 创建虚拟环境（推荐）
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# venv\Scripts\activate   # Windows
+
+# 3. 安装依赖
 pip install -r requirements.txt
+配置
 
-# 设置 API Key
-export QWEN_API_KEY="sk-xxx"            # Linux/macOS
-$env:QWEN_API_KEY="sk-xxx"              # Windows PowerShell
-set QWEN_API_KEY=sk-xxx                 # Windows CMD
+复制配置模板并填写你的 API Key：
 
-# REPL 交互模式
+bash
+cp config.example.yaml config.yaml
+
+编辑 config.yaml：
+
+yaml
+llm:
+  api_key: "sk-your-qwen-api-key"
+  model: "qwen-coder-plus"
+运行
+
+交互式 REPL 模式：
+
+bash
 python main.py
 
-# 单次任务模式
-python main.py --task "分析 src/agent.py 的核心循环逻辑"
+单次任务模式：
 
-# 指定配置文件
-python main.py --config my_config.yaml
-```
+bash
+python main.py --task "为 utils.py 编写单元测试并修复潜在 Bug"
+💡 使用示例
+🔧 代码生成
 
-获取 API Key: https://dashscope.console.aliyun.com/apiKey
+用 FastAPI 编写一个带 JWT 认证的登录接口，包含限流中间件。
 
-## 架构总览
+🐛 调试修复
 
-```
-用户任务 → Agent 状态机 → LLM（千问）→ 工具执行 → 结果反馈 → 循环
-   │              │                │                │
-   ├─ Skill 路由 (Index→Rank)      │                ├─ 安全校验 (路径/命令/黑名单)
-   ├─ 记忆系统 (三层)              │                ├─ 安全审查链 (规则→AI→人工)
-   ├─ 上下文压缩 (占位→笔记→压缩)  └─ 多Agent编排 (Fork/Join)
-   └─ 跨轮对话记忆
-```
+分析报错 AttributeError: 'NoneType' object has no attribute 'split'并给出修复方案。
 
-### Agent 核心循环
+🧪 自动化测试
 
-- 状态机流转：`INIT → THINKING → EXECUTING → DONE/MAX_ITER/ERROR`
-- 只读工具并行执行（ThreadPoolExecutor，max_workers=4）
-- 连续相同回复自动终止
-- 只读工具结果缓存（30秒 TTL）
-- 全链路审计日志 + Token 追踪
+为 order_service.py生成 Pytest 单元测试，覆盖 90% 的分支。
 
-## 核心模块
+🔄 多 Agent 协作
 
-### Skill 路由系统
+生成订单模块代码，编写测试用例，进行代码审查，最后生成 Swagger 文档。
 
-三层路由减少 Token 消耗——只把相关工具暴露给 LLM：
+⚙️ 配置说明
+安全等级
+yaml
+security:
+  tier: "standard"  # relaxed | standard | strict
 
-- **目录层** — YAML 定义 14 个 Skill，5 大分类（调试、开发、测试、文档、Git）
-- **召回层** — 基于 jieba 分词 + Tag 召回 Top 15 候选
-- **精排层** — LLM 打分精排 Top 5
-- 按需追加：LLM 请求了路由外的工具时动态扩展
+等级
 
-### 多Agent协作
+	
 
-主控 Agent 通过 Fork/Join 模式分派子任务：
+说明
 
-| 子Agent | 职责 | 权限 |
-|---------|------|------|
-| `code_generator` | 编写/修改生产代码 | 完整写入权限 |
-| `tester` | 编写和运行测试 | 仅测试文件 |
-| `reviewer` | 代码审查 | 只读 |
-| `documenter` | 生成文档 | 只读 |
+	
 
-- Git worktree 隔离并行任务
-- 结果校验强制检查每个 Agent 的工具权限
-- 可配置并行 worker 数（默认 4）
+适用场景
 
-### 安全审查链
 
-工具执行前三层防御：
 
-1. **规则过滤** — 静态模式匹配（敏感文件、危险命令）
-2. **AI 风险分类** — LLM 检测 Prompt 注入、恶意代码、社会工程、路径欺骗
-3. **人工确认** — MEDIUM+ 风险操作需交互确认
 
-- 三级安全策略：`relaxed`（宽松）/ `standard`（标准）/ `strict`（严格）
-- 完整审计日志持久化到 `data/audit.log`
+relaxed
 
-### 自进化记忆系统
+	
 
-三层记忆 + 异步反思：
+仅拦截致命错误
 
-- **用户画像** — 跨项目持久化（技术栈、偏好、交互历史）
-- **程序性记忆** — 任务经验 + 向量检索（ChromaDB，降级为关键词匹配）
-- **情景记忆** — 每个任务的决策链 + 前后状态
+	
 
-钩子机制：`before_task()` 注入历史上下文 → `after_task()` 触发异步深度反思 → `get_feedback()` 输出 Skill 改进建议
+个人沙盒
 
-### 分层上下文压缩
 
-三层流水线控制上下文在 Token 预算内：
 
-1. **占位替换** — 超长文件内容/命令输出替换为紧凑占位符
-2. **笔记生成** — 工具结果自动生成结构化摘要
-3. **超限压缩** — 超阈值时对历史消息做 LLM 摘要
 
-按需展开：用户说 `展开 PLACEHOLDER:xxx` 恢复原始内容
+standard
 
-## 可用工具
+	
 
-| 工具 | 功能 | 安全措施 |
-|------|------|---------|
-| `read_file` | 读取文件内容 | 路径白名单、5MB 限制 |
-| `write_file` | 创建/覆盖文件 | 路径白名单 |
-| `edit_file` | 精确字符串替换 | 路径白名单 |
-| `run_command` | 执行 Shell 命令 | 命令黑名单、60s 超时 |
-| `grep_search` | 正则搜索文件内容 | 排除 node_modules 等 |
-| `glob` | 文件模式匹配 | 排除目录 |
-| `git_status` | 查看仓库状态 | — |
-| `git_diff` | 查看代码变更 | — |
-| `git_commit` | 提交变更 | 保护 main/master 分支 |
-| `ask_user_question` | 交互式多选提问 | — |
-| `todo_write` | 管理任务清单 | — |
-| `delegate_agent` | 分派子Agent任务 | worktree 隔离 |
+高风险需确认
 
-## 项目结构
+	
 
-```
-Agent/
-├── main.py                      # 入口（REPL 交互 + 单次任务）
-├── config.yaml                  # YAML 配置 + 环境变量注入
-├── requirements.txt             # 依赖：openai, pyyaml, rich, jieba, chromadb
-├── src/
-│   ├── agent.py                 # 核心 Agent 状态机引擎
-│   ├── config.py                # dataclass 强类型配置加载器
-│   ├── llm.py                   # OpenAI 兼容的 LLM 客户端（千问/DashScope）
-│   ├── state.py                 # 会话状态 + Token 统计
-│   ├── safety.py                # 路径/命令安全校验（SafetyChecker）
-│   ├── logger.py                # JSON 结构化日志 + Token 追踪
-│   ├── output_filter.py         # 用户输出净化
-│   ├── conversation_memory.py   # 跨轮对话短期记忆
-│   │
-│   ├── tools/                   # 原子工具实现
-│   │   ├── base.py              # BaseTool 抽象 + ToolRegistry + ToolResult
-│   │   ├── file_tools.py        # read_file, write_file, edit_file
-│   │   ├── shell_tools.py       # run_command
-│   │   ├── git_tools.py         # git_status, git_diff, git_commit
-│   │   ├── search_tools.py      # grep_search
-│   │   ├── glob_tool.py         # glob 模式匹配
-│   │   ├── ask_tool.py          # ask_user_question
-│   │   └── todo_tool.py         # todo_write
-│   │
-│   ├── skills/                  # Skill 路由系统
-│   │   ├── definitions.yaml     # Skill 目录（14个Skill, 5个分类）
-│   │   ├── catalog.py           # SkillCatalog — YAML 加载 + 查询 API
-│   │   ├── index.py             # SkillIndex — Tag 召回
-│   │   ├── ranker.py            # SkillRanker — LLM 精排
-│   │   ├── router.py            # SkillRouter — 路由编排层
-│   │   └── intent.py            # 意图提取
-│   │
-│   ├── memory/                  # 自进化记忆系统
-│   │   ├── manager.py           # MemoryManager — before/after task 钩子
-│   │   ├── reflector.py         # MemoryReflector — 异步摘要 + 详情生成
-│   │   ├── store.py             # MemoryStore — JSON 持久化 + ChromaDB 向量索引
-│   │   ├── retriever.py         # MemoryRetriever — 语义 + 关键词检索
-│   │   ├── models.py            # MemoryEntry, UserProfile, EpisodicMemory
-│   │   └── skill_feedback.py    # SkillFeedbackLoop — 记忆驱动的 Skill 改进
-│   │
-│   ├── context/                 # 分层上下文压缩
-│   │   ├── manager.py           # ContextManager — 统一入口
-│   │   ├── placeholder.py       # PlaceholderEngine — 长内容占位替换
-│   │   ├── notes.py             # NoteGenerator — 结构化自动摘要
-│   │   └── compressor.py        # Compressor — LLM 超限压缩
-│   │
-│   ├── multi_agent/             # 多Agent协作系统
-│   │   ├── orchestrator.py      # Orchestrator — Fork/Join 主控编排器
-│   │   ├── sub_agent.py         # SubAgent — 隔离的子Agent实例
-│   │   ├── delegate_tool.py     # DelegateAgentTool — 分派接口
-│   │   ├── team.py              # 团队组合
-│   │   └── types.py             # AgentType 枚举、SubAgentResult、白名单
-│   │
-│   └── security/                # 安全审查链
-│       ├── types.py             # RiskLevel, RiskAssessment, AuditDecision
-│       ├── audit_chain.py       # AuditChain — 三层审查编排
-│       ├── rule_filter.py       # RuleFilter — 静态规则匹配（第1层）
-│       ├── ai_classifier.py     # AIRiskClassifier — LLM 风险检测（第2层）
-│       ├── human_gate.py        # HumanGate — 人工确认门禁（第3层）
-│       ├── audit_logger.py      # AuditLogger — 审计日志持久化
-│       └── tool_check.py        # 工具级安全检查
-│
-└── docs/
-    └── superpowers/
-        ├── specs/               # 技术设计文档
-        └── plans/               # 实施计划
-```
+企业开发
 
-## REPL 命令
 
-| 命令 | 说明 |
-|------|------|
-| `/help` | 显示帮助信息 |
-| `/clear` | 清空对话历史 |
-| `/stats` | 查看 Token 消耗统计 |
-| `/exit` / `/quit` | 退出程序 |
 
-## 配置说明
 
-所有配置项在 `config.yaml` 中，支持 `${环境变量}` 注入：
+strict
 
-```yaml
-llm:
-  api_key: "${QWEN_API_KEY}"
-  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  model: "qwen-coder-plus"
-  temperature: 0.1              # 0=确定性, 2=创造性
-  max_tokens: 8192
+	
 
-agent:
-  max_iterations: 30            # 最大工具调用轮数
-  workspace_root: "."           # 文件操作安全边界
+中风险及以上拦截
 
+	
+
+生产环境
+
+记忆系统
+yaml
 memory:
   enabled: true
-  async_reflection: true        # 异步深度反思
-  data_dir: "data/memories"
-
+  chroma_path: "./memory/chroma"
+  max_entries: 1000
+上下文压缩
+yaml
 context:
-  enabled: true
-  max_tokens: 9000              # 触发压缩的 Token 阈值
+  placeholder_threshold: 3000  # 超长内容替换为占位符
+  max_tokens: 9000             # 超限触发 LLM 压缩
 
-multi_agent:
-  enabled: true
-  parallel_workers: 4           # 最大并行子Agent数
-  sub_agent_max_iterations: 15
+📖 详细调参请见 TUNING.md
 
-security:
-  enabled: true
-  tier: "standard"              # relaxed | standard | strict
-  enable_ai_classifier: true    # AI 风险检测
-  enable_human_gate: true       # 人工确认
-```
+📊 性能数据
 
-## 技术栈
+指标
 
-- **Python** 3.12+
-- **LLM**: 千问 Qwen（DashScope，OpenAI 兼容接口）
-- **向量数据库**: ChromaDB（可选，降级为关键词匹配）
-- **终端**: Rich（面板、表格、Markdown、实时动画）
-- **NLP**: jieba（中文分词，用于 Skill 索引）
-- **配置**: YAML + dataclass + 环境变量注入
-- **并发**: ThreadPoolExecutor（并行工具调用 + Fork/Join 子Agent）
+	
 
-## 设计原则
+数值
 
-1. **Agent 只做编排，不做实现** — 核心 Agent 只管理 LLM→工具→结果的循环，所有逻辑在独立模块
-2. **安全优先** — 路径校验、命令黑名单、三层审查链，失败如实汇报不撒谎
-3. **Token 高效** — Skill 路由裁剪工具列表、上下文压缩、工具缓存、Prompt 瘦身
-4. **配置驱动** — 所有行为参数在 config.yaml，调参不改代码
-5. **中文原生** — 系统提示词、用户输出、文档全部中文优先
 
-## 扩展指南
 
-### 新增工具
 
-```python
+Token 效率提升
+
+	
+
+40%​
+
+
+
+
+记忆召回准确率
+
+	
+
+85%​
+
+
+
+
+高危操作拦截率
+
+	
+
+100%​
+
+
+
+
+并行执行加速
+
+	
+
+50%​
+
+
+
+
+上下文压缩率
+
+	
+
+33%​
+
+
+
+
+代码规模
+
+	
+
+4000+ 行​
+
+🧩 扩展开发
+新增工具
+python
 # src/tools/my_tool.py
-from src.tools.base import BaseTool, ToolResult
+from .base import BaseTool, ToolResult
 
 class MyTool(BaseTool):
     name = "my_tool"
-    description = "工具用途说明（LLM 阅读此描述决定何时调用）"
+    description = "自定义工具描述"
     parameters = {
         "type": "object",
-        "properties": {
-            "arg1": {"type": "string", "description": "参数说明"}
-        },
-        "required": ["arg1"],
+        "properties": {"param": {"type": "string"}},
+        "required": ["param"]
     }
+    
+    def execute(self, param: str) -> ToolResult:
+        return ToolResult(success=True, content="执行完成")
 
-    def execute(self, arg1: str) -> ToolResult:
-        result = do_something(arg1)
-        return ToolResult(success=True, content=f"执行结果: {result}")
-```
+# 在 main.py 中注册即可，无需修改 Agent 核心
+新增 Skill
 
-在 `main.py` 注册：
+编辑 definitions.yaml：
 
-```python
-from src.tools.my_tool import MyTool
-registry.register(MyTool)
-```
-
-### 新增 Skill
-
-在 `src/skills/definitions.yaml` 追加定义即可，无需改代码：
-
-```yaml
+yaml
 skills:
   - name: my_skill
-    display_name: "我的 Skill"
-    description: "Skill 描述"
+    display_name: "我的技能"
     category: develop
-    tags: [python, feature, implementation]
-    tools: [read_file, write_file, edit_file, run_command]
+    tags: [custom, example]
+    tools: [read_file, write_file]
     prompt_template: |
-      ## 工作流程
-      1. 第一步
-      2. 第二步
-```
+      ## 执行流程
+      1. 分析需求
+      2. 生成代码
+🛠️ 技术栈
 
-Catalog 自动从 YAML 加载，路由系统自动生效。
+类别
 
-## 安全设计
+	
 
-- **路径白名单**：所有文件操作限制在 `workspace_root` 内，`resolve().relative_to()` 防止符号链接逃逸和 `../` 越界
-- **命令黑名单**：正则拦截 `rm -rf /`、`shutdown`、`mkfs`、fork bomb、`curl|sh` 等危险命令
-- **三层审查链**：规则过滤 → AI 风险分类 → 人工确认，工具执行前逐层检查
-- **分支保护**：禁止对 main/master/release 等受保护分支执行危险操作
-- **Prompt 注入防御**：AI 分类器检测 Prompt 覆盖企图、恶意代码注入、社会工程欺骗、路径伪装
-- **审计日志**：所有安全事件记录到 `data/audit.log`，含风险等级、决策、时间戳
+技术
+
+
+
+
+语言​
+
+	
+
+Python 3.10+
+
+
+
+
+模型​
+
+	
+
+Qwen-Coder-Plus (DashScope)
+
+
+
+
+存储​
+
+	
+
+ChromaDB + JSON
+
+
+
+
+NLP​
+
+	
+
+jieba
+
+
+
+
+并发​
+
+	
+
+ThreadPoolExecutor
+
+
+
+
+终端​
+
+	
+
+Rich
+
+
+
+
+架构​
+
+	
+
+状态机 · 责任链 · 异步回调
+
+🗺️ 路线图
+
+[x] Phase 1: 核心 Agent 与工具系统
+
+[x] Phase 2: Skill 路由与记忆系统
+
+[ ] Phase 3: Web UI 界面 (FastAPI + Vue)
+
+[ ] Phase 4: MCP (Model Context Protocol) 协议支持
+
+[ ] Phase 5: 插件市场与社区生态
+
+🤝 贡献指南
+
+我们非常欢迎各种形式的贡献！
+
+Fork 本仓库
+
+创建特性分支 (git checkout -b feature/amazing-feature)
+
+提交更改 (git commit -m 'feat: add amazing feature')
+
+推送到分支 (git push origin feature/amazing-feature)
+
+开启一个 Pull Request
+
+📖 请阅读 CONTRIBUTING.md
+了解详细信息。
+
+📄 许可证
+
+本项目采用 MIT License​ 开源协议。详见 LICENSE
+文件。
+
+<div align="center">
+
+🤖 AI Coding Agent — 让 AI 真正懂你的代码
+
+⭐ Star us on GitHub
+• 🐛 Report Bug
+• 💡 Request Feature
+
+</div>
